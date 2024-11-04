@@ -1,1 +1,4 @@
-dataset-path: "/home/chakshu/Documents/projects/iot_security/iot-eval-framework/datasets/captures_IoT-Sentinel/"
+dataset-name: "IoT-Sentinel"
+dataset-path: "/home/chakshu/Documents/projects/iot_security/iot-eval-framework/datasets/captures_IoT-Sentinel"
+device-file: "{}/devices.txt"
+

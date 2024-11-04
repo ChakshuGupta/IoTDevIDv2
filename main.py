@@ -4,7 +4,35 @@ import os
 import sys
 import yaml
 
-from src.feature_extraction import FeatureExtraction
+from src.feature_extraction import extract_features
+from src.util import load_device_file
+
+
+def list_files(path):
+    pcap_list = []
+    # r=root, d=directories, f = files
+    for r, d, f in os.walk(path):
+        for file in f:
+            if ".pcap" in file or ".pcapng" in file:
+                pcap_list.append(os.path.join(r, file))
+    return pcap_list
+
+
+def split_data(pcap_list):
+    train  = []
+    test  = []
+    validation = []
+
+    for iter, file_path in enumerate(pcap_list):
+        if iter%5!=0:
+            if iter%4==0:
+                validation.append(file_path)
+                test.append(pcap_list[iter+1])
+
+            else:
+                train.append(iter)
+    return(train, test, validation)
+
 
 
 if __name__ == "__main__":
@@ -40,6 +68,12 @@ if __name__ == "__main__":
 
     logger.addHandler(handler)
 
-    feature_extractor = FeatureExtraction()
-    feature_extractor.list_files(config["dataset-path"])
-    feature_extractor.split_data()
+    ######## Read the dataset directory #########
+
+    pcap_list = list_files(config["dataset-path"])
+    train, test, validation = split_data(pcap_list)
+    
+    device_mac_map = load_device_file(config["device-file"].format(config["dataset-path"]))
+    print(device_mac_map)
+
+    extract_features(pcap_list, device_mac_map)
