@@ -184,14 +184,9 @@ def ML(loop1,loop2,output_csv,cols_dtype,step,mixed,dname, target_names):
             m_train = df["MAC"]
             del df["MAC"]
             X_train = df[df.columns[0:-1]]
-            X_train.pck_size = X_train.pck_size.astype(int)
             X_train = X_train.to_numpy()
             df[df.columns[-1]] = df[df.columns[-1]].astype('category')
             y_train=df[df.columns[-1]].cat.codes
-            print("X-Train values")
-            print(X_train)
-            print("Y-Train values")
-            print(y_train)  
 
             #TEST
             df2 = pd.read_csv(loop2)#, usecols=cols, dtype=cols_dtype, low_memory=False)
@@ -204,11 +199,6 @@ def ML(loop1,loop2,output_csv,cols_dtype,step,mixed,dname, target_names):
             X_test = X_test.to_numpy()
             df2[df2.columns[-1]] = df2[df2.columns[-1]].astype('category')
             y_test=df2[df2.columns[-1]].cat.codes
-            print("X-Test values")
-            print(X_test)
-            print("Y-Test values")
-            print(y_test)
-
 
             results_y=[]
             cv+=1

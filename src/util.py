@@ -18,7 +18,7 @@ def load_device_file(device_file):
    for line in file_data:
        if line.strip() == "":
            continue
-       device = line.split(",")[0]
+       device = line.split(",")[0].replace(" ", "").lower()
        mac = line.split(",")[1]
        device_mac_map[mac.strip()] = device.strip()
 

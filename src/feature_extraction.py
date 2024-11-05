@@ -101,7 +101,7 @@ def extract_features(pcap_list, device_mac_map):
 
     for numero,i in enumerate (pcap_list):
             
-        filename=i[:-4]+".csv"
+        filename=i[:-5]+".csv"
         csvfile = open(filename, "w")
         writer = csv.DictWriter(csvfile, fieldnames=header)
         writer.writeheader()
@@ -639,7 +639,7 @@ def extract_features(pcap_list, device_mac_map):
         csvfile.close()
 
     for iter, file_path in enumerate(pcap_list):
-        filename=file_path[:-4]+".csv"
+        filename=file_path[:-5]+".csv"
         ths = open("Protocol.csv", "w")
         ths.write("Protocol\n")
         
