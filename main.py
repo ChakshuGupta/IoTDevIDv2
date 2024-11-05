@@ -7,7 +7,7 @@ import yaml
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from src.evaluation import target_name, ML
+from src.evaluation import target_name, train_model, test_model
 from src.feature_extraction import extract_features, replace_flags
 from src.util import load_device_file, list_files, folder
 
@@ -22,7 +22,7 @@ def split_data(name_list):
         y=df[df.columns[-1]]
 
         # setting up testing and training sets
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=27,stratify=y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, train_size=0.8, random_state=27, stratify=y)
 
         # concatenate our training data back together
         train = pd.concat([X_train, y_train], axis=1)
@@ -100,7 +100,7 @@ if __name__ == "__main__":
                     'BOOTP_file': int, 'BOOTP_options': int, 'DNS_qr': int, 'DNS_rd': int, 'DNS_qdcount': int, 'dport_class': int,
                     'payload_bytes': int, 'entropy': float, "MAC": object, 'Label': object}
 
-    ### NORMAL
+    ### MIXED
 
     mixed=True
     step=13
@@ -108,4 +108,9 @@ if __name__ == "__main__":
     
     output_csv = config["dataset-name"]+str(sayac)+"_"+str(step)+"_"+str(mixed)+".csv"
     target_names = target_name(test_file)
-    ML(train_file,test_file,output_csv,feature_dict,step,mixed,config["dataset-name"]+"_"+str(step), target_names) 
+
+    # Train the models
+    train_time, list_models = train_model(train_file, feature_dict)
+
+    # Test the models
+    test_model(list_models, test_file, output_csv, feature_dict, step, mixed, config["dataset-name"], target_names, train_time)
