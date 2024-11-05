@@ -23,3 +23,13 @@ def load_device_file(device_file):
        device_mac_map[mac.strip()] = device.strip()
 
    return device_mac_map
+
+
+def list_files(path, ext):
+    pcap_list = []
+
+    for r, d, f in os.walk(path):
+        for file in f:
+            if ext in file:
+                pcap_list.append(os.path.join(r, file))
+    return pcap_list

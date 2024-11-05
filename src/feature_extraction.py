@@ -1,11 +1,12 @@
+import csv
 import math
 import os
 import pandas as pd
 import time
 
 from scapy.all import*
-from sklearn.model_selection import train_test_split
-
+from src.constants import *
+from src.util import list_files
 
 def shannon(data):
     LOG_BASE = 2
@@ -63,7 +64,15 @@ def port_1023(port):
 
 
 def extract_features(pcap_list, device_mac_map):
-    header="pck_size,Ether_type,LLC_dsap,LLC_ssap,LLC_ctrl,EAPOL_version,EAPOL_type,EAPOL_len,IP_version,IP_ihl,IP_tos,IP_len,IP_flags,IP_Z,IP_MF,IP_id,IP_chksum,IP_DF,IP_frag,IP_ttl,IP_proto,IP_options,IP_add_count,ICMP_type,ICMP_code,ICMP_chksum,ICMP_id,ICMP_seq,ICMP_ts_ori,ICMP_ts_rx,ICMP_ts_tx,ICMP_ptr,ICMP_reserved,ICMP_length,ICMP_nexthopmtu,ICMP_unused,TCP_seq,TCP_ack,TCP_dataofs,TCP_reserved,TCP_flags,TCP_FIN,TCP_SYN,TCP_RST,TCP_PSH,TCP_ACK,TCP_URG,TCP_ECE,TCP_CWR,TCP_window,TCP_chksum,TCP_urgptr,TCP_options,UDP_len,UDP_chksum,DHCP_options,BOOTP_op,BOOTP_htype,BOOTP_hlen,BOOTP_hops,BOOTP_xid,BOOTP_secs,BOOTP_flags,BOOTP_sname,BOOTP_file,BOOTP_options,DNS_length,DNS_id,DNS_qr,DNS_opcode,DNS_aa,DNS_tc,DNS_rd,DNS_ra,DNS_z,DNS_ad,DNS_cd,DNS_rcode,DNS_qdcount,DNS_ancount,DNS_nscount,DNS_arcount,sport_class,dport_class,sport23,dport23,sport_bare,dport_bare,TCP_sport,TCP_dport,UDP_sport,UDP_dport,payload_bytes,entropy,MAC,Label\n"
+    header = ['pck_size', 'Ether_type', 'LLC_dsap', 'LLC_ssap', 'LLC_ctrl', 'EAPOL_version', 'EAPOL_type', 'EAPOL_len', 'IP_version', 'IP_ihl', 'IP_tos',
+    'IP_len', 'IP_flags', 'IP_Z', 'IP_MF', 'IP_id', 'IP_chksum', 'IP_DF', 'IP_frag', 'IP_ttl', 'IP_proto', 'IP_options', 'IP_add_count',
+    'ICMP_type', 'ICMP_code', 'ICMP_chksum', 'ICMP_id', 'ICMP_seq', 'ICMP_ts_ori', 'ICMP_ts_rx', 'ICMP_ts_tx', 'ICMP_ptr', 'ICMP_reserved',
+    'ICMP_length', 'ICMP_nexthopmtu', 'ICMP_unused', 'TCP_seq', 'TCP_ack', 'TCP_dataofs', 'TCP_reserved', 'TCP_flags', 'TCP_FIN', 'TCP_SYN',
+    'TCP_RST', 'TCP_PSH', 'TCP_ACK', 'TCP_URG', 'TCP_ECE', 'TCP_CWR', 'TCP_window', 'TCP_chksum', 'TCP_urgptr', 'TCP_options', 'UDP_len', 'UDP_chksum', 'DHCP_options',
+    'BOOTP_op', 'BOOTP_htype', 'BOOTP_hlen', 'BOOTP_hops', 'BOOTP_xid', 'BOOTP_secs', 'BOOTP_flags', 'BOOTP_sname', 'BOOTP_file', 'BOOTP_options', 'DNS_length', 'DNS_id',
+    'DNS_qr', 'DNS_opcode', 'DNS_aa', 'DNS_tc', 'DNS_rd', 'DNS_ra', 'DNS_z', 'DNS_ad', 'DNS_cd', 'DNS_rcode', 'DNS_qdcount', 'DNS_ancount', 'DNS_nscount',
+    'DNS_arcount', 'sport_class', 'dport_class', 'sport23', 'dport23', 'sport_bare', 'dport_bare', 'TCP_sport', 'TCP_dport', 'UDP_sport',
+    'UDP_dport', 'payload_bytes', 'entropy', 'MAC', 'Label']
 
     #flags
     #TCP
@@ -90,13 +99,14 @@ def extract_features(pcap_list, device_mac_map):
     label_count=0
 
 
-
     for numero,i in enumerate (pcap_list):
             
         filename=i[:-4]+".csv"
-        ths = open(filename, "w")
-        ths.write(header)  
-        
+        csvfile = open(filename, "w")
+        writer = csv.DictWriter(csvfile, fieldnames=header)
+        writer.writeheader()
+
+        data = []
 
         #header=header
         #ths.write(header)  
@@ -124,9 +134,12 @@ def extract_features(pcap_list, device_mac_map):
                 continue
             else:
                 
-                ts=j.time
-                try:pck_size=j.len
-                except:pck_size=0
+                ts = j.time
+                try:
+                    pck_size = int(j.len)
+                except:
+                    pck_size=0
+
                 if j.haslayer(Ether):
 
                     if j[Ether].dst not in Ether_adresses:
@@ -134,9 +147,9 @@ def extract_features(pcap_list, device_mac_map):
                     if j[Ether].src not in Ether_adresses:
                         Ether_adresses.append(j[Ether].src)
 
-                    Ether_dst=j[Ether].dst#Ether_adresses.index(j[Ether].dst)+1
-                    Ether_src=j[Ether].src#Ether_adj[Ether].dstresses.index(j[Ether].src)+1
-                    Ether_type=j[Ether].type
+                    Ether_dst = j[Ether].dst #Ether_adresses.index(j[Ether].dst)+1
+                    Ether_src = j[Ether].src #Ether_adj[Ether].dstresses.index(j[Ether].src)+1
+                    Ether_type = j[Ether].type
 
                 else:
                     Ether_dst=0
@@ -145,9 +158,9 @@ def extract_features(pcap_list, device_mac_map):
 
 
                 if j.haslayer(LLC):
-                    LLC_dsap=j[LLC].dsap
-                    LLC_ssap=j[LLC].ssap
-                    LLC_ctrl=j[LLC].ctrl
+                    LLC_dsap = j[LLC].dsap
+                    LLC_ssap = j[LLC].ssap
+                    LLC_ctrl = j[LLC].ctrl
                 else:
                     LLC_dsap=0
                     LLC_ssap=0
@@ -491,12 +504,12 @@ def extract_features(pcap_list, device_mac_map):
                     entropy=0
                 payload_bytes=len(pdata)
 
-                sport_class=port_class(TCP_sport+UDP_sport)
-                dport_class=port_class(TCP_dport+UDP_dport)
-                sport23=port_1023(TCP_sport+UDP_sport)
-                dport23=port_1023(TCP_dport+UDP_dport)
-                sport_bare=TCP_sport+UDP_sport
-                dport_bare=TCP_dport+UDP_dport#port_class(TCP_dport+UDP_dport)
+                sport_class = port_class(TCP_sport + UDP_sport)
+                dport_class = port_class(TCP_dport + UDP_dport)
+                sport23 = port_1023(TCP_sport + UDP_sport)
+                dport23 = port_1023(TCP_dport + UDP_dport)
+                sport_bare = TCP_sport + UDP_sport
+                dport_bare = TCP_dport + UDP_dport#port_class(TCP_dport+UDP_dport)
                 
                 try:
                     label=device_mac_map[j.src]
@@ -505,121 +518,125 @@ def extract_features(pcap_list, device_mac_map):
                 Mac=j.src             
                 
                              
-                line=[pck_size,
-                Ether_type,
-                LLC_dsap,
-                LLC_ssap,
-                LLC_ctrl,
-                EAPOL_version,
-                EAPOL_type,
-                EAPOL_len,
-                IP_version,
-                IP_ihl,
-                IP_tos,
-                IP_len,
-                IP_flags,
-                IP_Z,
-                IP_MF,
-                IP_id,
-                IP_chksum,
-                IP_DF  ,
-                IP_frag,
-                IP_ttl,
-                IP_proto,
-                IP_options,
-                IP_add_count,
-                ICMP_type,
-                ICMP_code,
-                ICMP_chksum,
-                ICMP_id,
-                ICMP_seq,
-                ICMP_ts_ori,
-                ICMP_ts_rx,
-                ICMP_ts_tx,
-                ICMP_ptr,
-                ICMP_reserved,
-                ICMP_length,
-                #ICMP_addr_mask,
-                ICMP_nexthopmtu,
-                ICMP_unused,
-                TCP_seq,
-                TCP_ack,
-                TCP_dataofs,
-                TCP_reserved,
-                TCP_flags,
-                TCP_FIN,
-                TCP_SYN,
-                TCP_RST,
-                TCP_PSH,
-                TCP_ACK,
-                TCP_URG,
-                TCP_ECE,
-                TCP_CWR   ,
-                TCP_window,
-                TCP_chksum,
-                TCP_urgptr,
-                TCP_options,
-                UDP_len,
-                UDP_chksum,
-                DHCP_options,
-                BOOTP_op,
-                BOOTP_htype,
-                BOOTP_hlen,
-                BOOTP_hops,
-                BOOTP_xid,
-                BOOTP_secs,
-                BOOTP_flags,
-                BOOTP_sname,
-                BOOTP_file,
-                BOOTP_options,
-                DNS_length,
-                DNS_id,
-                DNS_qr,
-                DNS_opcode,
-                DNS_aa,
-                DNS_tc,
-                DNS_rd,
-                DNS_ra,
-                DNS_z,
-                DNS_ad,
-                DNS_cd,
-                DNS_rcode,
-                DNS_qdcount,
-                DNS_ancount,
-                DNS_nscount,
-                DNS_arcount,
-                sport_class,
-                dport_class,
-                sport23,
-                dport23,
-                sport_bare,
-                dport_bare,
-                TCP_sport,
-                TCP_dport,
-                UDP_sport,
-                UDP_dport, 
-                payload_bytes,
-                entropy,
-                Mac,
-                label]
+                line = {
+                    "pck_size": pck_size,
+                    "Ether_type": Ether_type,
+                    "LLC_dsap": LLC_dsap,
+                    "LLC_ssap": LLC_ssap,
+                    "LLC_ctrl": LLC_ctrl,
+                    "EAPOL_version": EAPOL_version,
+                    "EAPOL_type": EAPOL_type,
+                    "EAPOL_len": EAPOL_len,
+                    "IP_version": IP_version,
+                    "IP_ihl": IP_ihl,
+                    "IP_tos": IP_tos,
+                    "IP_len": IP_len,
+                    "IP_flags": IP_flags,
+                    "IP_Z": IP_Z,
+                    "IP_MF": IP_MF,
+                    "IP_id": IP_id,
+                    "IP_chksum": IP_chksum,
+                    "IP_DF": IP_DF,
+                    "IP_frag": IP_frag,
+                    "IP_ttl": IP_ttl,
+                    "IP_proto": IP_proto,
+                    "IP_options": IP_options,
+                    "IP_add_count": IP_add_count,
+                    "ICMP_type": ICMP_type,
+                    "ICMP_code": ICMP_code,
+                    "ICMP_chksum": ICMP_chksum,
+                    "ICMP_id": ICMP_id,
+                    "ICMP_seq": ICMP_seq,
+                    "ICMP_ts_ori": ICMP_ts_ori,
+                    "ICMP_ts_rx": ICMP_ts_rx,
+                    "ICMP_ts_tx": ICMP_ts_tx,
+                    "ICMP_ptr": ICMP_ptr,
+                    "ICMP_reserved": ICMP_reserved,
+                    "ICMP_length": ICMP_length,
+                    #ICMP_addr_mask,
+                    "ICMP_nexthopmtu": ICMP_nexthopmtu,
+                    "ICMP_unused": ICMP_unused,
+                    "TCP_seq": TCP_seq,
+                    "TCP_ack": TCP_ack,
+                    "TCP_dataofs": TCP_dataofs,
+                    "TCP_reserved": TCP_reserved,
+                    "TCP_flags": TCP_flags,
+                    "TCP_FIN": TCP_FIN,
+                    "TCP_SYN": TCP_SYN,
+                    "TCP_RST": TCP_RST,
+                    "TCP_PSH": TCP_PSH,
+                    "TCP_ACK": TCP_ACK,
+                    "TCP_URG": TCP_URG,
+                    "TCP_ECE": TCP_ECE,
+                    "TCP_CWR": TCP_CWR,
+                    "TCP_window": TCP_window,
+                    "TCP_chksum": TCP_chksum,
+                    "TCP_urgptr": TCP_urgptr,
+                    "TCP_options": TCP_options,
+                    "UDP_len": UDP_len,
+                    "UDP_chksum": UDP_chksum,
+                    "DHCP_options": DHCP_options,
+                    "BOOTP_op": BOOTP_op,
+                    "BOOTP_htype": BOOTP_htype,
+                    "BOOTP_hlen": BOOTP_hlen,
+                    "BOOTP_hops": BOOTP_hops,
+                    "BOOTP_xid": BOOTP_xid,
+                    "BOOTP_secs": BOOTP_secs,
+                    "BOOTP_flags": BOOTP_flags,
+                    "BOOTP_sname": BOOTP_sname,
+                    "BOOTP_file": BOOTP_file,
+                    "BOOTP_options": BOOTP_options,
+                    "DNS_length": DNS_length,
+                    "DNS_id": DNS_id,
+                    "DNS_qr": DNS_qr,
+                    "DNS_opcode": DNS_opcode,
+                    "DNS_aa": DNS_aa,
+                    "DNS_tc": DNS_tc,
+                    "DNS_rd": DNS_rd,
+                    "DNS_ra": DNS_ra,
+                    "DNS_z": DNS_z,
+                    "DNS_ad": DNS_ad,
+                    "DNS_cd": DNS_cd,
+                    "DNS_rcode": DNS_rcode,
+                    "DNS_qdcount": DNS_qdcount,
+                    "DNS_ancount": DNS_ancount,
+                    "DNS_nscount": DNS_nscount,
+                    "DNS_arcount": DNS_arcount,
+                    "sport_class": sport_class,
+                    "dport_class": dport_class,
+                    "sport23": sport23,
+                    "dport23": dport23,
+                    "sport_bare": sport_bare,
+                    "dport_bare": dport_bare,
+                    "TCP_sport": TCP_sport,
+                    "TCP_dport": TCP_dport,
+                    "UDP_sport": UDP_sport,
+                    "UDP_dport": UDP_dport, 
+                    "payload_bytes": payload_bytes,
+                    "entropy": entropy,
+                    "MAC": Mac,
+                    "Label": label
+                }
 
-                print(line)
-                line=str(line).replace("[","")
-                line=str(line).replace("]","")
-                #line=str(line).replace("\',","-")
-                line=str(line).replace(", ",",")
-                line=str(line).replace("\'","")
-                line=str(line).replace("None","0")
+                # print(line)
+                # line=str(line).replace("[","")
+                # line=str(line).replace("]","")
+                # #line=str(line).replace("\',","-")
+                # line=str(line).replace(", ",",")
+                # line=str(line).replace("\'","")
+                # line=str(line).replace("None","0")
                 if label!="":
-                    ths.write(str(line)+"\n")  
-                #kk=line.split(",")
+                    data.append(line)  
+                # #kk=line.split(",")
                 #print(len(kk))
                 #if len(kk)==112:
                 #ths.write(line+"\n")
                 
                 #else:print(line)
+        
+        writer.writerows(data)
         print("  - ",numero+1,"/",len(pcap_list))    
-        ths.close()
+        csvfile.close()
 
     for iter, file_path in enumerate(pcap_list):
         filename=file_path[:-4]+".csv"
@@ -649,3 +666,30 @@ def extract_features(pcap_list, device_mac_map):
         df1["Label"]=label
         df1.to_csv(filename,index=None)
     os.remove("Protocol.csv")
+
+
+def replace_flags(input_path, ext, output_path):
+    
+    filelist = list_files(input_path, ext)
+    if len(filelist) == 0:
+        return
+
+    df = pd.read_csv(filelist[0])
+    col_names = list(df.columns)
+    print(output_path)
+
+    empty = pd.DataFrame(columns=col_names)
+    empty.to_csv(output_path, mode="a", index=False)#,header=False)
+
+    for file in filelist:
+        df = pd.read_csv(file)
+        print(file, df.shape)
+
+        df.to_csv(output_path, mode="a", index=False,header=False)
+    
+    df=pd.read_csv(output_path)
+    df=df.replace({"IP_flags": IP_flags})
+    df=df.replace({"TCP_flags": TCP_flags})
+    df=df.replace({"BOOTP_flags": BOOTP_flags})
+    df=df.replace({"Protocol": Protocol})
+    df.to_csv(output_path,index=None)

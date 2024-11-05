@@ -4,35 +4,44 @@ import os
 import sys
 import yaml
 
-from src.feature_extraction import extract_features
-from src.util import load_device_file
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+from src.evaluation import target_name, ML
+from src.feature_extraction import extract_features, replace_flags
+from src.util import load_device_file, list_files, folder
 
 
-def list_files(path):
-    pcap_list = []
-    # r=root, d=directories, f = files
-    for r, d, f in os.walk(path):
-        for file in f:
-            if ".pcap" in file or ".pcapng" in file:
-                pcap_list.append(os.path.join(r, file))
-    return pcap_list
+def split_data(name_list, dataset_dir):
+    train_dir = dataset_dir + "-train"
+    test_dir =  dataset_dir + "-test"
 
+    folder(train_dir)
+    folder(test_dir)
+    
+    for name in name_list:    
+        df = pd.read_csv(name)#,header=None)
+        df.fillna(value = 0)
+        X = df[df.columns[0:-1]]
+        df[df.columns[-1]] = df[df.columns[-1]].astype('category')
+        y=df[df.columns[-1]]
 
-def split_data(pcap_list):
-    train  = []
-    test  = []
-    validation = []
+        # setting up testing and training sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=27,stratify=y)
 
-    for iter, file_path in enumerate(pcap_list):
-        if iter%5!=0:
-            if iter%4==0:
-                validation.append(file_path)
-                test.append(pcap_list[iter+1])
+        # concatenate our training data back together
+        train = pd.concat([X_train, y_train], axis=1)
+        file_name = os.path.basename(name)
 
-            else:
-                train.append(iter)
-    return(train, test, validation)
+        file = os.path.join(train_dir,file_name[0:-5]+"_"+"_TRAIN.csv")
+        train.to_csv(file,index=False)
 
+        test= pd.concat([X_test, y_test], axis=1)
+
+        file = os.path.join(test_dir, file_name[0:-5]+"_"+"_TEST.csv")
+        test.to_csv(file,index=False)
+    
+    return train_dir, test_dir
 
 
 if __name__ == "__main__":
@@ -70,10 +79,38 @@ if __name__ == "__main__":
 
     ######## Read the dataset directory #########
 
-    pcap_list = list_files(config["dataset-path"])
-    train, test, validation = split_data(pcap_list)
-    
+    pcap_list = list_files(config["dataset-path"], ".pcap")
+   
     device_mac_map = load_device_file(config["device-file"].format(config["dataset-path"]))
     print(device_mac_map)
 
+    # Extract the features
     extract_features(pcap_list, device_mac_map)
+
+    csv_list = list_files(config["dataset-path"], ".csv")
+    
+    train_dir, test_dir = split_data(csv_list, config["dataset-path"])
+    
+    # # Create the directory
+    folder(config["dataset-name"])
+    train_file = os.path.join(config["dataset-name"], config["dataset-name"] + "_train.csv")
+    test_file = os.path.join(config["dataset-name"], config["dataset-name"] + "_test.csv")
+
+    replace_flags(train_dir, ".csv", train_file)
+    replace_flags(test_dir, ".csv", test_file)
+
+    feature_dict = {'pck_size': int, 'Ether_type': int, 'LLC_ctrl': int, 'EAPOL_version': int, 'EAPOL_type': int, 'IP_ihl': int, 'IP_tos': int, 'IP_len': int, 'IP_flags': int,
+                    'IP_DF': int, 'IP_ttl': int, 'IP_options': int, 'ICMP_code': int, 'TCP_dataofs': int, 'TCP_FIN': int, 'TCP_ACK': int,
+                    'TCP_window': int, 'UDP_len': int, 'DHCP_options': int, 'BOOTP_hlen': int, 'BOOTP_flags': int, 'BOOTP_sname': int,
+                    'BOOTP_file': int, 'BOOTP_options': int, 'DNS_qr': int, 'DNS_rd': int, 'DNS_qdcount': int, 'dport_class': int,
+                    'payload_bytes': int, 'entropy': float, "MAC": object, 'Label': object}
+
+    ### NORMAL
+
+    mixed=False
+    step=1
+    sayac=1
+    
+    output_csv = config["dataset-name"]+str(sayac)+"_"+str(step)+"_"+str(mixed)+".csv"
+    target_names = target_name(test_file)
+    ML(train_file,test_file,output_csv,feature_dict,step,mixed,config["dataset-name"]+"_"+str(step), target_names) 
