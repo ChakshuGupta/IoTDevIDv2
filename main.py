@@ -136,7 +136,7 @@ if __name__ == "__main__":
     x_test = x_test.to_numpy()
     df2[df2.columns[-1]] = df2[df2.columns[-1]].astype('category')
     y_test=df2[df2.columns[-1]].cat.codes
-    y_true_all, y_pred, test_time, y_true_per_rep, y_predict_per_rep = test_model(x_test, y_test, list_models)
+    y_true_per_rep, y_predict_per_rep, test_time = test_model(x_test, y_test, list_models)
 
     print(m_test)
 

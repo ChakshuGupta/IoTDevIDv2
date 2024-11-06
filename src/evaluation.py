@@ -187,7 +187,6 @@ def train_model(x_train, y_train):
             repetition=100
 
         for i in range(repetition):
-            print("Iteration: ", i)
             #TRAIN
             clf = ml_list[ml_algo]#choose algorithm from ml_list dictionary
             
@@ -207,9 +206,6 @@ def train_model(x_train, y_train):
 
 
 def test_model(x_test, y_test, list_models):
-        
-    y_true = []
-    y_pred = []
 
     y_true_per_rep = []
     y_predict_per_rep = []
@@ -226,10 +222,8 @@ def test_model(x_test, y_test, list_models):
             predict = list_models[ml_algo][i].predict(x_test)
             test_time=(float((time.time()-second)) )
             
-            y_true.extend(y_test)
-            y_pred.extend(predict)
             y_true_per_rep.append(y_test)
             y_predict_per_rep.append(predict)
 
     
-    return y_true, y_pred, test_time, y_true_per_rep, y_predict_per_rep
+    return y_true_per_rep, y_predict_per_rep, test_time
