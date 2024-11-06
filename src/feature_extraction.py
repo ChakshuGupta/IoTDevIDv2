@@ -96,6 +96,9 @@ def extract_features(pcap_list, device_mac_map):
     for iter, pcap_file in enumerate(pcap_list):
             
         filename = pcap_file[:-5] + ".csv"
+        if os.path.exists(filename):
+            continue
+        
         csvfile = open(filename, "w")
         writer = csv.DictWriter(csvfile, fieldnames=header)
         writer.writeheader()
@@ -606,21 +609,9 @@ def extract_features(pcap_list, device_mac_map):
                     "Label": label
                 }
 
-                # print(line)
-                # line=str(line).replace("[","")
-                # line=str(line).replace("]","")
-                # #line=str(line).replace("\',","-")
-                # line=str(line).replace(", ",",")
-                # line=str(line).replace("\'","")
-                # line=str(line).replace("None","0")
                 if label!="":
-                    data.append(line)  
-                # #kk=line.split(",")
-                #print(len(kk))
-                #if len(kk)==112:
-                #ths.write(line+"\n")
-                
-                #else:print(line)
+                    data.append(line)
+
         
         writer.writerows(data)
         print("  - ",iter+1,"/",len(pcap_list))    
@@ -653,7 +644,7 @@ def extract_features(pcap_list, device_mac_map):
         del df1["Label"]
         df1["Label"]=label
         df1.to_csv(filename,index=None)
-        
+
         os.remove("Protocol.csv")
 
 

@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
 from src.constants import FEATURE_DICT
-from src.evaluation import target_name, train_model, test_model, compute_result
+from src.evaluation import target_name, train_model, test_model, compute_result, ml_list
 from src.feature_extraction import extract_features, replace_flags
 from src.util import load_device_file, list_files, folder
 
@@ -111,33 +111,39 @@ if __name__ == "__main__":
     df[df.columns[-1]] = df[df.columns[-1]].astype('category')
     y_train=df[df.columns[-1]].cat.codes
 
-    train_time, list_models = train_model(x_train, y_train)
+    list_models = {}
 
-    ### MIXED
+    for ml_algo in ml_list:
+        train_time, models = train_model(x_train, y_train, ml_algo)
+        list_models[ml_algo] = models
 
-    mixed=True
-    step=13
-    sayac=1
-    
-    output_csv = config["dataset-name"]+str(sayac)+"_"+str(step)+"_"+str(mixed)+".csv"
-    target_names = target_name(test_file)
+        ### MIXED
 
-    # Test the models
-    df2 = pd.read_csv(test_file)
-    df2 = df2[cols]
+        mixed=True
+        step=13
+        sayac=1
+        
+        output_csv = config["dataset-name"]+str(sayac)+"_"+str(step)+"_"+str(mixed)+".csv"
+        target_names = target_name(test_file)
 
-    print(df2.dtypes)
-    df2 = shuffle(df2, random_state=42)
+        # Test the models
+        df2 = pd.read_csv(test_file)
+        df2 = df2[cols]
 
-    m_test=df2["MAC"]
-    del df2["MAC"]
+        print(df2.dtypes)
+        df2 = shuffle(df2, random_state=42)
 
-    x_test = df2[df2.columns[0:-1]]
-    x_test = x_test.to_numpy()
-    df2[df2.columns[-1]] = df2[df2.columns[-1]].astype('category')
-    y_test=df2[df2.columns[-1]].cat.codes
-    y_true_per_rep, y_predict_per_rep, test_time = test_model(x_test, y_test, list_models)
+        m_test=df2["MAC"]
+        del df2["MAC"]
 
-    print(m_test)
+        x_test = df2[df2.columns[0:-1]]
+        x_test = x_test.to_numpy()
 
-    compute_result(y_true_per_rep, y_predict_per_rep, target_names, output_csv, m_test, step, mixed, config["dataset-name"], train_time, test_time, 100)
+        df2[df2.columns[-1]] = df2[df2.columns[-1]].astype('category')
+        y_test=df2[df2.columns[-1]].cat.codes
+        
+        y_true_per_rep, y_predict_per_rep, test_time = test_model(x_test, y_test, models)
+
+        print(m_test)
+
+        compute_result(y_true_per_rep, y_predict_per_rep, target_names, output_csv, m_test, step, mixed, config["dataset-name"], train_time, test_time, ml_algo)

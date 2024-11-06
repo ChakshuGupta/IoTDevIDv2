@@ -130,100 +130,95 @@ def score(altime,train_time,test_time,predict,y_test,class_based_results,dname,i
 
 
 
-def compute_result(y_test, predict, target_names, output_csv, m_test, step, mixed, dname, train_time, test_time, num_reps):
+def compute_result(y_test, predict, target_names, output_csv, m_test, step, mixed, dname, train_time, test_time, ml_algo):
 
     ths = open(output_csv, "w")
     ths.write("Dataset,T,CV,ML algorithm,Acc,b_Acc,Precision, Recall , F1-score, kappa ,tra-Time,test-Time,Al-Time\n")
+    num_reps = 100
 
-    for ml_algo in ml_list:
+    class_based_results=pd.DataFrame()#"" #pd.DataFrame(0, index=np.arange((len(target_names)+3)), columns=["f1-score","precision","recall","support"])
+    cm = pd.DataFrame()
 
-        class_based_results=pd.DataFrame()#"" #pd.DataFrame(0, index=np.arange((len(target_names)+3)), columns=["f1-score","precision","recall","support"])
-        cm = pd.DataFrame()
+    for i in range(num_reps):
 
-        for i in range(num_reps):
+        if step==1:
+            altime=0
+            lines,class_based_results = score(altime, train_time, test_time, predict[i], y_test[i], class_based_results, dname, ml_algo, target_names)
+        else:
+            predict[i],altime = merged(m_test,predict[i],step,mixed)
+            lines,class_based_results = score(altime, train_time, test_time, predict[i], y_test[i], class_based_results, dname, ml_algo, target_names)
 
-            if step==1:
-                altime=0
-                lines,class_based_results = score(altime, train_time, test_time, predict[i], y_test[i], class_based_results, dname, ml_algo, target_names)
-            else:
-                predict[i],altime = merged(m_test,predict[i],step,mixed)
-                lines,class_based_results = score(altime, train_time, test_time, predict[i], y_test[i], class_based_results, dname, ml_algo, target_names)
+        ths.write(lines)
 
-            ths.write(lines)
+        df_cm = pd.DataFrame(confusion_matrix(y_test[i], predict[i]))
+        if cm.empty:
+            cm =df_cm
+        else:
+            cm = cm.add(df_cm, fill_value=0)
+    
+    class_based_results=class_based_results/num_reps
+    print(class_based_results)
+    class_based_results.to_csv(dname + "-class_based_results.csv")
 
-            df_cm = pd.DataFrame(confusion_matrix(y_test[i], predict[i]))
-            if cm.empty:
-                cm =df_cm
-            else:
-                cm = cm.add(df_cm, fill_value=0)
-        
-        class_based_results=class_based_results/num_reps
-        print(class_based_results)
-        class_based_results.to_csv(dname + "-class_based_results.csv")
-
-        if True :
-            cm = cm//num_reps
-            graph_name = output_csv + ml_algo + "_confusion matrix.pdf"   
-            plt.figure(figsize = (40,28))
-            sns.heatmap(cm, xticklabels=target_names, yticklabels=target_names, annot=True, fmt='g')
-            plt.savefig(graph_name, bbox_inches='tight')
-            plt.show()
-            print("\n\n\n")             
+    if True :
+        cm = cm//num_reps
+        graph_name = output_csv + ml_algo + "_confusion matrix.pdf"   
+        plt.figure(figsize = (40,28))
+        sns.heatmap(cm, xticklabels=target_names, yticklabels=target_names, annot=True, fmt='g')
+        plt.savefig(graph_name, bbox_inches='tight')
+        plt.show()
+        print("\n\n\n")             
 
     ths.close()
 
 
-def train_model(x_train, y_train):
+def train_model(x_train, y_train, ml_algo):
 
-    list_models = {}
+    models = []
 
-    for ml_algo in ml_list:
-        print ('%-15s %-3s %-3s %-6s  %-5s %-5s %-5s %-5s %-8s %-5s %-8s %-8s%-8s%-8s'%
-               ("Dataset","T","CV","ML alg","Acc","b_Acc","Prec", "Rec" , "F1", "kap" ,"tra-T","test-T","total","al-time"))
+    
+    print ('%-15s %-3s %-3s %-6s  %-5s %-5s %-5s %-5s %-8s %-5s %-8s %-8s%-8s%-8s'%
+            ("Dataset","T","CV","ML alg","Acc","b_Acc","Prec", "Rec" , "F1", "kap" ,"tra-T","test-T","total","al-time"))
+    
+    if ml_algo in ["GB","SVM"]: #for slow algorithms.
+        repetition=10 
+    else:
+        repetition=100
+
+    for i in range(repetition):
+        #TRAIN
+        clf = ml_list[ml_algo]#choose algorithm from ml_list dictionary
         
-        if ml_algo in ["GB","SVM"]: #for slow algorithms.
-            repetition=10 
-        else:
-            repetition=100
+        second = time.time()
+        
+        clf.fit(x_train, y_train)
+        train_time = (float((time.time()-second)) )
+        
+        second = time.time()
+        
+        models.append(clf)
 
-        for i in range(repetition):
-            #TRAIN
-            clf = ml_list[ml_algo]#choose algorithm from ml_list dictionary
-            
-            second = time.time()
-            
-            clf.fit(x_train, y_train)
-            train_time = (float((time.time()-second)) )
-            
-            second = time.time()
-
-            if ml_algo not in list_models:
-                list_models[ml_algo] = []
-            
-            list_models[ml_algo].append(clf)
-
-    return train_time, list_models
+    return train_time, models
 
 
-def test_model(x_test, y_test, list_models):
+def test_model(x_test, y_test, models):
 
     y_true_per_rep = []
     y_predict_per_rep = []
 
-    for ml_algo in ml_list:
-        repetition=100
+    repetition=100
+    
+    for i in range(repetition):
+        #TEST
+        results_y=[]
+        results_y.append(y_test)     
         
-        for i in range(repetition):
-            #TEST
-            results_y=[]
-            results_y.append(y_test)     
-            
-            second=time.time()
-            predict = list_models[ml_algo][i].predict(x_test)
-            test_time=(float((time.time()-second)) )
-            
-            y_true_per_rep.append(y_test)
-            y_predict_per_rep.append(predict)
+        second=time.time()
+        predict = models[i].predict(x_test)
+        test_time=(float((time.time()-second)) )
+        
+        y_true_per_rep.append(y_test)
+        y_predict_per_rep.append(predict)
 
     
     return y_true_per_rep, y_predict_per_rep, test_time
