@@ -1,23 +1,15 @@
 import numpy as np
-from random import random
-from sklearn import metrics
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.metrics import accuracy_score
-from sklearn.metrics import average_precision_score
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 
-
-from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.utils import shuffle
+
 from collections import Counter
-import csv
-import math
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 import seaborn as sns
 import sklearn
@@ -66,7 +58,7 @@ def create_exception(df):
     return exception_list
 
 
-def merged(m_test,predict,step,mixed):
+def merged(m_test, predict, step, mixed):
     second=time.time()
     mac_test=[]
     for q in m_test.index:
@@ -104,7 +96,7 @@ def merged(m_test,predict,step,mixed):
     return results["aggregated"].values,time.time()-second
 
 
-def score(altime,train_time,test_time,predict,y_test,class_based_results,i,cv,dname,ii, target_names):
+def score(altime,train_time,test_time,predict,y_test,class_based_results,dname,ii, target_names):
     precision=[]
     recall=[]
     f1=[]
@@ -130,17 +122,60 @@ def score(altime,train_time,test_time,predict,y_test,class_based_results,i,cv,dn
 
     kappa.append(round(float(sklearn.metrics.cohen_kappa_score(y_test, predict, 
     labels=None, weights=None, sample_weight=None)),15))
-    print ('%-15s %-3s %-3s %-6s  %-5s %-5s %-5s %-5s %-8s %-5s %-8s %-8s%-8s%-8s' % (dname,i,cv,ii[0:6],str(round(np.mean(accuracy),2)),str(round(np.mean(accuracy_b),2)),
+    print ('%-15s %-6s  %-5s %-5s %-5s %-5s %-8s %-5s %-8s %-8s%-8s%-8s' % (dname,ii[0:6],str(round(np.mean(accuracy),2)),str(round(np.mean(accuracy_b),2)),
         str(round(np.mean(precision),2)), str(round(np.mean(recall),2)),str(round(np.mean(f1),4)), 
         str(round(np.mean(kappa),2)),str(round(np.mean(train_time),2)),str(round(np.mean(test_time),2)),str(round(np.mean(test_time)+np.mean(train_time),2)),str(round(np.mean(altime),2))))
-    lines=(str(dname)+","+str(i)+","+str(cv)+","+str(ii)+","+str(round(np.mean(accuracy),15))+","+str(round(np.mean(accuracy_b),15))+","+str(round(np.mean(precision),15))+","+ str(round(np.mean(recall),15))+","+str(round(np.mean(f1),15))+","+str(round(np.mean(kappa),15))+","+str(round(np.mean(train_time),15))+","+str(round(np.mean(test_time),15))+","+str(altime)+"\n")
+    lines=(str(dname)+","+str(ii)+","+str(round(np.mean(accuracy),15))+","+str(round(np.mean(accuracy_b),15))+","+str(round(np.mean(precision),15))+","+ str(round(np.mean(recall),15))+","+str(round(np.mean(f1),15))+","+str(round(np.mean(kappa),15))+","+str(round(np.mean(train_time),15))+","+str(round(np.mean(test_time),15))+","+str(altime)+"\n")
     return lines,class_based_results
 
 
-def train_model(train_data, cols_dtype):
-    cols = list(cols_dtype.keys())
-    print(cols)
-    list_models = []
+
+def compute_result(y_test, predict, target_names, output_csv, m_test, step, mixed, dname, train_time, test_time, num_reps):
+
+    ths = open(output_csv, "w")
+    ths.write("Dataset,T,CV,ML algorithm,Acc,b_Acc,Precision, Recall , F1-score, kappa ,tra-Time,test-Time,Al-Time\n")
+
+    for ml_algo in ml_list:
+
+        class_based_results=pd.DataFrame()#"" #pd.DataFrame(0, index=np.arange((len(target_names)+3)), columns=["f1-score","precision","recall","support"])
+        cm = pd.DataFrame()
+
+        for i in range(num_reps):
+
+            if step==1:
+                altime=0
+                lines,class_based_results = score(altime, train_time, test_time, predict[i], y_test[i], class_based_results, dname, ml_algo, target_names)
+            else:
+                predict[i],altime = merged(m_test,predict[i],step,mixed)
+                lines,class_based_results = score(altime, train_time, test_time, predict[i], y_test[i], class_based_results, dname, ml_algo, target_names)
+
+            ths.write(lines)
+
+            df_cm = pd.DataFrame(confusion_matrix(y_test[i], predict[i]))
+            if cm.empty:
+                cm =df_cm
+            else:
+                cm = cm.add(df_cm, fill_value=0)
+        
+        class_based_results=class_based_results/num_reps
+        print(class_based_results)
+        class_based_results.to_csv(dname + "-class_based_results.csv")
+
+        if True :
+            cm = cm//num_reps
+            graph_name = output_csv + ml_algo + "_confusion matrix.pdf"   
+            plt.figure(figsize = (40,28))
+            sns.heatmap(cm, xticklabels=target_names, yticklabels=target_names, annot=True, fmt='g')
+            plt.savefig(graph_name, bbox_inches='tight')
+            plt.show()
+            print("\n\n\n")             
+
+    ths.close()
+
+
+def train_model(x_train, y_train):
+
+    list_models = {}
 
     for ml_algo in ml_list:
         print ('%-15s %-3s %-3s %-6s  %-5s %-5s %-5s %-5s %-8s %-5s %-8s %-8s%-8s%-8s'%
@@ -154,86 +189,47 @@ def train_model(train_data, cols_dtype):
         for i in range(repetition):
             print("Iteration: ", i)
             #TRAIN
-            df = pd.read_csv(train_data)
-            df = df[cols]
-            print(df.dtypes)
-            m_train = df["MAC"]
-            del df["MAC"]
-            X_train = df[df.columns[0:-1]]
-            X_train = X_train.to_numpy()
-            df[df.columns[-1]] = df[df.columns[-1]].astype('category')
-            y_train=df[df.columns[-1]].cat.codes
-
-            #machine learning algorithm is applied in this section
             clf = ml_list[ml_algo]#choose algorithm from ml_list dictionary
-            second=time.time()
-            clf.fit(X_train, y_train)
-            train_time=(float((time.time()-second)) )
-            second=time.time()
-            list_models.append(clf)
+            
+            second = time.time()
+            
+            clf.fit(x_train, y_train)
+            train_time = (float((time.time()-second)) )
+            
+            second = time.time()
+
+            if ml_algo not in list_models:
+                list_models[ml_algo] = []
+            
+            list_models[ml_algo].append(clf)
 
     return train_time, list_models
 
 
-def test_model(list_models, test_data, output_csv, cols_dtype, step, mixed, dname, target_names, train_time):
-    
-    ths = open(output_csv, "w")
-    ths.write("Dataset,T,CV,ML algorithm,Acc,b_Acc,Precision, Recall , F1-score, kappa ,tra-Time,test-Time,Al-Time\n")
+def test_model(x_test, y_test, list_models):
+        
+    y_true = []
+    y_pred = []
 
-    for iter, ml_algo in enumerate(ml_list):
+    y_true_per_rep = []
+    y_predict_per_rep = []
+
+    for ml_algo in ml_list:
         repetition=100
-
-        class_based_results=pd.DataFrame()#"" #pd.DataFrame(0, index=np.arange((len(target_names)+3)), columns=["f1-score","precision","recall","support"])
-        cm=pd.DataFrame()
-        cv=0
         
         for i in range(repetition):
-            cols = list(cols_dtype.keys())
             #TEST
-            df2 = pd.read_csv(test_data)
-            df2 = df2[cols]
-            print(df2.dtypes)
-            df2 = shuffle(df2, random_state=42)
-            m_test=df2["MAC"]
-            del df2["MAC"]
-            X_test =df2[df2.columns[0:-1]]
-            X_test = X_test.to_numpy()
-            df2[df2.columns[-1]] = df2[df2.columns[-1]].astype('category')
-            y_test=df2[df2.columns[-1]].cat.codes
-
             results_y=[]
-            cv+=1
             results_y.append(y_test)     
             
             second=time.time()
-            predict = list_models[iter].predict(X_test)
+            predict = list_models[ml_algo][i].predict(x_test)
             test_time=(float((time.time()-second)) )
-            if step==1:
-                altime=0
-                lines,class_based_results = score(altime, train_time, test_time, predict, y_test, class_based_results, i, cv, dname, ml_algo, target_names)
-            else:
-                predict,altime=merged(m_test,predict,step,mixed)
-                lines,class_based_results = score(altime, train_time, test_time, predict, y_test, class_based_results, i, cv, dname, ml_algo, target_names)
-            ths.write (lines)
-
-
-            df_cm = pd.DataFrame(confusion_matrix(y_test, predict))
-            if cm.empty:
-                cm =df_cm
-            else:
-                cm = cm.add(df_cm, fill_value=0)
             
-        class_based_results=class_based_results/repetition
-        print(class_based_results)
-        class_based_results.to_csv(dname + "-class_based_results.csv")
+            y_true.extend(y_test)
+            y_pred.extend(predict)
+            y_true_per_rep.append(y_test)
+            y_predict_per_rep.append(predict)
 
-        if True :
-            cm = cm//repetition
-            graph_name = output_csv + ml_algo + "_confusion matrix.pdf"   
-            plt.figure(figsize = (40,28))
-            sns.heatmap(cm, xticklabels=target_names, yticklabels=target_names, annot=True, fmt='g')
-            plt.savefig(graph_name, bbox_inches='tight')
-            plt.show()
-            print("\n\n\n")             
-       
-    ths.close()  
+    
+    return y_true, y_pred, test_time, y_true_per_rep, y_predict_per_rep

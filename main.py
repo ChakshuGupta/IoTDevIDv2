@@ -4,10 +4,13 @@ import os
 import sys
 import yaml
 
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 
-from src.evaluation import target_name, train_model, test_model
+from src.constants import FEATURE_DICT
+from src.evaluation import target_name, train_model, test_model, compute_result
 from src.feature_extraction import extract_features, replace_flags
 from src.util import load_device_file, list_files, folder
 
@@ -26,7 +29,6 @@ def split_data(name_list):
 
         # concatenate our training data back together
         train = pd.concat([X_train, y_train], axis=1)
-        file_name = os.path.basename(name)
 
         file = name[0:-4]+"_"+"_TRAIN.csv"
         print(file)
@@ -94,11 +96,22 @@ if __name__ == "__main__":
     replace_flags(config["dataset-path"], "TRAIN.csv", train_file)
     replace_flags(config["dataset-path"], "TEST.csv", test_file)
 
-    feature_dict = {'pck_size': int, 'Ether_type': int, 'LLC_ctrl': int, 'EAPOL_version': int, 'EAPOL_type': int, 'IP_ihl': int, 'IP_tos': int, 'IP_len': int, 'IP_flags': int,
-                    'IP_DF': int, 'IP_ttl': int, 'IP_options': int, 'ICMP_code': int, 'TCP_dataofs': int, 'TCP_FIN': int, 'TCP_ACK': int,
-                    'TCP_window': int, 'UDP_len': int, 'DHCP_options': int, 'BOOTP_hlen': int, 'BOOTP_flags': int, 'BOOTP_sname': int,
-                    'BOOTP_file': int, 'BOOTP_options': int, 'DNS_qr': int, 'DNS_rd': int, 'DNS_qdcount': int, 'dport_class': int,
-                    'payload_bytes': int, 'entropy': float, "MAC": object, 'Label': object}
+    # Train the models
+    cols = list(FEATURE_DICT.keys())
+    df = pd.read_csv(train_file)
+    df = df[cols]
+
+    print(df.dtypes)
+    m_train = df["MAC"]
+    del df["MAC"]
+    
+    x_train = df[df.columns[0:-1]]
+    x_train = x_train.to_numpy()
+
+    df[df.columns[-1]] = df[df.columns[-1]].astype('category')
+    y_train=df[df.columns[-1]].cat.codes
+
+    train_time, list_models = train_model(x_train, y_train)
 
     ### MIXED
 
@@ -109,8 +122,22 @@ if __name__ == "__main__":
     output_csv = config["dataset-name"]+str(sayac)+"_"+str(step)+"_"+str(mixed)+".csv"
     target_names = target_name(test_file)
 
-    # Train the models
-    train_time, list_models = train_model(train_file, feature_dict)
-
     # Test the models
-    test_model(list_models, test_file, output_csv, feature_dict, step, mixed, config["dataset-name"], target_names, train_time)
+    df2 = pd.read_csv(test_file)
+    df2 = df2[cols]
+
+    print(df2.dtypes)
+    df2 = shuffle(df2, random_state=42)
+
+    m_test=df2["MAC"]
+    del df2["MAC"]
+
+    x_test = df2[df2.columns[0:-1]]
+    x_test = x_test.to_numpy()
+    df2[df2.columns[-1]] = df2[df2.columns[-1]].astype('category')
+    y_test=df2[df2.columns[-1]].cat.codes
+    y_true_all, y_pred, test_time, y_true_per_rep, y_predict_per_rep = test_model(x_test, y_test, list_models)
+
+    print(m_test)
+
+    compute_result(y_true_per_rep, y_predict_per_rep, target_names, output_csv, m_test, step, mixed, config["dataset-name"], train_time, test_time, 100)

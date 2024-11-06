@@ -2,9 +2,8 @@ import csv
 import math
 import os
 import pandas as pd
-import time
 
-from scapy.all import*
+from scapy.all import *
 from src.constants import *
 from src.util import list_files
 
@@ -89,38 +88,27 @@ def extract_features(pcap_list, device_mac_map):
     MF= 0x01
     DF= 0x02
 
-
-    ipf=[]
-    tcpf=[]
-    degistir=""
     dst_ip_list={}
     Ether_adresses=[]
     IP_adresses=[]
-    label_count=0
 
 
-    for numero,i in enumerate (pcap_list):
+    for iter, pcap_file in enumerate(pcap_list):
             
-        filename=i[:-5]+".csv"
+        filename = pcap_file[:-5] + ".csv"
         csvfile = open(filename, "w")
         writer = csv.DictWriter(csvfile, fieldnames=header)
         writer.writeheader()
 
-        data = []
+        print("Filename:", filename)
 
-        #header=header
-        #ths.write(header)  
-        filename=str(i)
-        filename=filename.replace("\\","/")
-        #x = filename.rfind("/")
-        filename=filename.split("/")
+        data = []
         
         #break
-        pkt = rdpcap(i)
-        #print("\n",numero,"/",len(pcap_list),"========"+ i[8:]+"========\n" )
-        #print("\n",numero,"/",len(pcap_list))
+        pkt = rdpcap(pcap_file)
+
         sayaç=len(pkt)//20
-        for jj, j in enumerate (pkt):
+        for jj, j in enumerate(pkt):
             
             try:        
                 if jj%sayaç==0:
@@ -635,7 +623,7 @@ def extract_features(pcap_list, device_mac_map):
                 #else:print(line)
         
         writer.writerows(data)
-        print("  - ",numero+1,"/",len(pcap_list))    
+        print("  - ",iter+1,"/",len(pcap_list))    
         csvfile.close()
 
     for iter, file_path in enumerate(pcap_list):
@@ -643,7 +631,7 @@ def extract_features(pcap_list, device_mac_map):
         ths = open("Protocol.csv", "w")
         ths.write("Protocol\n")
         
-        command="tshark -r "+i+" -T fields -e _ws.col.Protocol -E header=n -E separator=, -E quote=d -E occurrence=f > temp.csv"
+        command="tshark -r "+pcap_file+" -T fields -e _ws.col.Protocol -E header=n -E separator=, -E quote=d -E occurrence=f > temp.csv"
         os.system(command)
 
         with open("temp.csv", "r") as file:

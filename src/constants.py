@@ -53,3 +53,9 @@ Protocol = {'EAPOL': 1, 'DHCP': 2, 'DNS': 3, 'TCP': 4, 'HTTP': 5, 'ICMP': 6, 'MD
 "RSL":125,
 "TPCP":126,
  "IPv6":  127 }
+
+FEATURE_DICT = {'pck_size': int, 'Ether_type': int, 'LLC_ctrl': int, 'EAPOL_version': int, 'EAPOL_type': int, 'IP_ihl': int, 'IP_tos': int, 'IP_len': int, 'IP_flags': int,
+                    'IP_DF': int, 'IP_ttl': int, 'IP_options': int, 'ICMP_code': int, 'TCP_dataofs': int, 'TCP_FIN': int, 'TCP_ACK': int,
+                    'TCP_window': int, 'UDP_len': int, 'DHCP_options': int, 'BOOTP_hlen': int, 'BOOTP_flags': int, 'BOOTP_sname': int,
+                    'BOOTP_file': int, 'BOOTP_options': int, 'DNS_qr': int, 'DNS_rd': int, 'DNS_qdcount': int, 'dport_class': int,
+                    'payload_bytes': int, 'entropy': float, "MAC": object, 'Label': object}
