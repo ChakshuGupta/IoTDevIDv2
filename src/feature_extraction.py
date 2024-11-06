@@ -653,7 +653,8 @@ def extract_features(pcap_list, device_mac_map):
         del df1["Label"]
         df1["Label"]=label
         df1.to_csv(filename,index=None)
-    os.remove("Protocol.csv")
+        
+        os.remove("Protocol.csv")
 
 
 def replace_flags(input_path, ext, output_path):
