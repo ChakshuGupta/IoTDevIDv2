@@ -134,7 +134,7 @@ def compute_result(y_test, predict, target_names, output_csv, m_test, step, mixe
 
     ths = open(output_csv, "w")
     ths.write("Dataset,T,CV,ML algorithm,Acc,b_Acc,Precision, Recall , F1-score, kappa ,tra-Time,test-Time,Al-Time\n")
-    num_reps = 100
+    num_reps = 10
 
     class_based_results=pd.DataFrame()#"" #pd.DataFrame(0, index=np.arange((len(target_names)+3)), columns=["f1-score","precision","recall","support"])
     cm = pd.DataFrame()
@@ -183,7 +183,7 @@ def train_model(x_train, y_train, ml_algo):
     if ml_algo in ["GB","SVM"]: #for slow algorithms.
         repetition=10 
     else:
-        repetition=100
+        repetition=10
 
     for i in range(repetition):
         #TRAIN
@@ -206,7 +206,7 @@ def test_model(x_test, y_test, models):
     y_true_per_rep = []
     y_predict_per_rep = []
 
-    repetition=100
+    repetition=10
     
     for i in range(repetition):
         #TEST

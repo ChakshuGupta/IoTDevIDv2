@@ -643,6 +643,12 @@ def extract_features(pcap_list, device_mac_map):
         label=df1["Label"]
         del df1["Label"]
         df1["Label"]=label
+
+        df1 = df1.replace({"IP_flags": IP_flags})
+        df1 = df1.replace({"TCP_flags": TCP_flags})
+        df1 = df1.replace({"BOOTP_flags": BOOTP_flags})
+        df1 = df1.replace({"Protocol": Protocol})
+
         df1.to_csv(filename,index=None)
 
         os.remove("Protocol.csv")
