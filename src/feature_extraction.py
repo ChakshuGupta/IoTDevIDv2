@@ -644,9 +644,9 @@ def extract_features(pcap_list, device_mac_map):
         del df1["Label"]
         df1["Label"]=label
 
-        df1 = df1.replace({"IP_flags": IP_flags})
-        df1 = df1.replace({"TCP_flags": TCP_flags})
-        df1 = df1.replace({"BOOTP_flags": BOOTP_flags})
+        df1 = df1.replace({"IP_flags": IP_FLAGS})
+        df1 = df1.replace({"TCP_flags": TCP_FLAGS})
+        df1 = df1.replace({"BOOTP_flags": BOOTP_FLAGS})
         df1 = df1.replace({"Protocol": Protocol})
 
         df1.to_csv(filename,index=None)
@@ -674,8 +674,8 @@ def replace_flags(input_path, ext, output_path):
         df.to_csv(output_path, mode="a", index=False,header=False)
     
     df=pd.read_csv(output_path)
-    df=df.replace({"IP_flags": IP_flags})
-    df=df.replace({"TCP_flags": TCP_flags})
-    df=df.replace({"BOOTP_flags": BOOTP_flags})
+    df=df.replace({"IP_flags": IP_FLAGS})
+    df=df.replace({"TCP_flags": TCP_FLAGS})
+    df=df.replace({"BOOTP_flags": BOOTP_FLAGS})
     df=df.replace({"Protocol": Protocol})
     df.to_csv(output_path,index=None)
