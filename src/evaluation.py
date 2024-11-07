@@ -61,18 +61,16 @@ def create_exception(df):
 def merged(m_test, predict, step, mixed):
     second=time.time()
     mac_test=[]
-    for q in m_test.index:
-        mac_test.append(m_test[q])
+    for q in m_test:
+        mac_test.append(q)
 
     d_list=sorted(list(m_test.unique()))
     devices={}
     for q in d_list:
         devices[q]=[]    
 
-
     new_y=[0]*len(m_test)
-
-    for q,qq in enumerate (mac_test):
+    for q,qq in enumerate(mac_test):
         devices[qq].append(q)
     for q in devices:
         a = [devices[q][j:j + step] for j in range(0, len(devices[q]), step)]  

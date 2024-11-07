@@ -665,14 +665,12 @@ def replace_flags(input_path, ext, output_path):
 
     df = pd.read_csv(filelist[0])
     col_names = list(df.columns)
-    print(output_path)
 
     empty = pd.DataFrame(columns=col_names)
     empty.to_csv(output_path, mode="a", index=False)#,header=False)
 
     for file in filelist:
         df = pd.read_csv(file)
-        print(file, df.shape)
 
         df.to_csv(output_path, mode="a", index=False,header=False)
     
