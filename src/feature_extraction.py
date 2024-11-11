@@ -642,6 +642,7 @@ def extract_features(pcap_list, device_mac_map):
         df1["Protocol"]=df2["Protocol"]        
         label=df1["Label"]
         del df1["Label"]
+        df1 = df1.fillna(0)
         df1["Label"]=label
         
         df1 = df1.replace({"IP_flags": IP_FLAGS})
@@ -649,7 +650,6 @@ def extract_features(pcap_list, device_mac_map):
         df1 = df1.replace({"BOOTP_flags": BOOTP_FLAGS})
         df1 = df1.replace({"Protocol": Protocol})
         
-        df1 = df1.fillna(0)
         df1 = df1.astype(FEATURE_DICT)
 
         df1.to_csv(filename,index=None)
