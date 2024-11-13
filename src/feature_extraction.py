@@ -619,13 +619,17 @@ def extract_features(pcap_list, device_mac_map):
 
     for iter, file_path in enumerate(pcap_list):
         filename=file_path[:-5]+".csv"
-        ths = open("Protocol.csv", "w")
+        base_path = os.path.split(file_path)[0]
+        protocol_path = os.path.join(base_path, "Protocol.csv")
+        ths = open(protocol_path, "w")
         ths.write("Protocol\n")
+        tmp_path = os.path.join(base_path, "temp.csv")
         
-        command="tshark -r "+pcap_file+" -T fields -e _ws.col.Protocol -E header=n -E separator=, -E quote=d -E occurrence=f > temp.csv"
+        command="tshark -r "+file_path+" -T fields -e _ws.col.Protocol -E header=n -E separator=, -E quote=d -E occurrence=f > "+tmp_path
         os.system(command)
+        
 
-        with open("temp.csv", "r") as file:
+        with open(tmp_path, "r") as file:
             while True:
                 line=file.readline()
                 print(line)
@@ -636,9 +640,9 @@ def extract_features(pcap_list, device_mac_map):
                     continue                       
         ths.close()  
         print("   {}  /  {}".format(iter+1,len(pcap_list)))    
-        os.remove("temp.csv")
+        os.remove(tmp_path)
         df1=pd.read_csv(filename)
-        df2=pd.read_csv("Protocol.csv")
+        df2=pd.read_csv(protocol_path)
         df1["Protocol"]=df2["Protocol"]        
         label=df1["Label"]
         del df1["Label"]
@@ -654,7 +658,7 @@ def extract_features(pcap_list, device_mac_map):
 
         df1.to_csv(filename,index=None)
 
-        os.remove("Protocol.csv")
+        os.remove(protocol_path)
 
 
 def replace_flags(input_path, ext, output_path):
