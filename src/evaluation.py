@@ -203,6 +203,7 @@ def test_model(x_test, y_test, models):
 
     y_true_per_rep = []
     y_predict_per_rep = []
+    y_probs_per_rep = []
 
     repetition=10
     
@@ -213,10 +214,14 @@ def test_model(x_test, y_test, models):
         
         second=time.time()
         predict = models[i].predict(x_test)
+        probs = models[i].predict_proba(x_test)
         test_time=(float((time.time()-second)) )
+
+        y_prob = np.amax(probs, axis=1)
         
         y_true_per_rep.append(y_test)
         y_predict_per_rep.append(predict)
+        y_probs_per_rep.append(y_prob)
 
     
-    return y_true_per_rep, y_predict_per_rep, test_time
+    return y_true_per_rep, y_predict_per_rep, y_probs_per_rep, test_time
